@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export default function Navbar() {
@@ -12,49 +12,57 @@ export default function Navbar() {
     navigate('/');
   };
 
+  // A helper function to return classes for NavLink based on whether it's active.
+  const linkClasses = ({ isActive }) =>
+    isActive
+      ? 'px-3 py-1 rounded bg-shade-4 text-white' // Active link style
+      : 'px-3 py-1 rounded hover:bg-shade-3 hover:text-white';
+
+  const mobileLinkClasses = ({ isActive }) =>
+    isActive
+      ? 'block p-2 rounded bg-shade-4 text-white'
+      : 'block p-2 rounded hover:bg-shade-3 hover:text-white';
+
   return (
-    <nav className="bg-shade-2 text-white">
+    <nav className="bg-green-dark text-white">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
           <div className="flex-shrink-0 text-xl font-bold">
-            <Link to="/">RoboAdvisor</Link>
+            <NavLink to="/">RoboAdvisor</NavLink>
           </div>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-4 items-center">
-            <Link to="/" className="hover:text-shade-9">
+          <div className="hidden md:flex space-x-2 items-center">
+            {/* Public Links */}
+            <NavLink to="/" className={linkClasses}>
               Home
-            </Link>
-            {user && (
+            </NavLink>
+            <NavLink to="/about" className={linkClasses}>
+              About
+            </NavLink>
+
+            {/* Other Pages (no sign in required, as per your setup) */}
+            <NavLink to="/dashboard" className={linkClasses}>
+              Dashboard
+            </NavLink>
+           
+
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-1 rounded bg-red-600 hover:bg-red-500"
+              >
+                Sign Out
+              </button>
+            ) : (
               <>
-                <Link to="/dashboard" className="hover:text-shade-9">
-                  Dashboard
-                </Link>
-                <Link to="/portfolio" className="hover:text-shade-9">
-                  Portfolio
-                </Link>
-                {user?.role === 'admin' && (
-                  <Link to="/admin" className="hover:text-shade-9">
-                    Admin Panel
-                  </Link>
-                )}
-                <button
-                  onClick={handleSignOut}
-                  className="bg-shade-4 hover:bg-shade-3 text-white px-3 py-1 rounded"
-                >
-                  Sign Out
-                </button>
-              </>
-            )}
-            {!user && (
-              <>
-                <Link to="/signin" className="hover:text-shade-9">
+                <NavLink to="/signin" className={linkClasses}>
                   Sign In
-                </Link>
-                <Link to="/signup" className="hover:text-shade-9">
+                </NavLink>
+                <NavLink to="/signup" className={linkClasses}>
                   Sign Up
-                </Link>
+                </NavLink>
               </>
             )}
           </div>
@@ -63,7 +71,7 @@ export default function Navbar() {
           <div className="md:hidden">
             <button
               type="button"
-              className="text-gray-200 hover:text-shade-9 focus:outline-none"
+              className="text-gray-100 hover:text-shade-9 focus:outline-none"
               onClick={() => setMobileOpen(!mobileOpen)}
             >
               <svg
@@ -84,68 +92,48 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-shade-2 px-2 pt-2 pb-3 space-y-1">
-          <Link
+        <div className="md:hidden bg-green-dark px-2 pt-2 pb-3 space-y-1">
+          <NavLink
             to="/"
+            className={mobileLinkClasses}
             onClick={() => setMobileOpen(false)}
-            className="block hover:bg-shade-3 p-2"
           >
             Home
-          </Link>
-
-          {user && (
+          </NavLink>
+          <NavLink
+            to="/about"
+            className={mobileLinkClasses}
+            onClick={() => setMobileOpen(false)}
+          >
+            About
+          </NavLink>
+          
+          {user ? (
+            <button
+              onClick={() => {
+                setMobileOpen(false);
+                handleSignOut();
+              }}
+              className="block w-full text-left p-2 rounded bg-red-600 hover:bg-red-500 mt-2"
+            >
+              Sign Out
+            </button>
+          ) : (
             <>
-              <Link
-                to="/dashboard"
-                onClick={() => setMobileOpen(false)}
-                className="block hover:bg-shade-3 p-2"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/portfolio"
-                onClick={() => setMobileOpen(false)}
-                className="block hover:bg-shade-3 p-2"
-              >
-                Portfolio
-              </Link>
-              {user.role === 'admin' && (
-                <Link
-                  to="/admin"
-                  onClick={() => setMobileOpen(false)}
-                  className="block hover:bg-shade-3 p-2"
-                >
-                  Admin Panel
-                </Link>
-              )}
-              <button
-                onClick={() => {
-                  setMobileOpen(false);
-                  handleSignOut();
-                }}
-                className="block w-full text-left hover:bg-shade-3 p-2"
-              >
-                Sign Out
-              </button>
-            </>
-          )}
-
-          {!user && (
-            <>
-              <Link
+              <NavLink
                 to="/signin"
+                className={mobileLinkClasses}
                 onClick={() => setMobileOpen(false)}
-                className="block hover:bg-shade-3 p-2"
               >
                 Sign In
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink
                 to="/signup"
+                className={mobileLinkClasses}
                 onClick={() => setMobileOpen(false)}
-                className="block hover:bg-shade-3 p-2"
               >
                 Sign Up
-              </Link>
+              </NavLink>
             </>
           )}
         </div>
