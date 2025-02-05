@@ -1,0 +1,12 @@
+# Ignore Node.js dependencies in the server folder
+server/node_modules/
+
+# Ignore environment variables
+server/.env
+
+# Optionally ignore log files (if applicable)
+server/*.log
+server/logs/
+
+# Ignore temporary files (if any)
+server/temp/
