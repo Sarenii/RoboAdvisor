@@ -1,9 +1,10 @@
+// controllers/portfolioController.js
+
 const Portfolio = require('../models/portfolioModel');
 
 exports.getAllPortfolios = async (req, res) => {
   try {
-    // For admin use or personal? We'll fetch only user-specific
-    // if you want to fetch all, remove the .find({ user: req.user._id })
+    // Fetch only portfolios belonging to the current authenticated user.
     const portfolios = await Portfolio.find({ user: req.user._id });
     res.json(portfolios);
   } catch (err) {
@@ -29,18 +30,19 @@ exports.getPortfolioById = async (req, res) => {
 
 exports.createPortfolio = async (req, res) => {
   try {
-    const { name, riskTolerance } = req.body;
-    // Minimal validation
+    const { name, riskTolerance, assets } = req.body;
+    // Minimal validation: Ensure name is provided.
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
 
+    // Create the portfolio. If an assets array is provided, use it; otherwise default to an empty array.
     const newPortfolio = await Portfolio.create({
       name,
       user: req.user._id,
       riskTolerance: riskTolerance || 'Moderate',
-      assets: [],
-      value: 0,
+      assets: Array.isArray(assets) ? assets : [],
+      value: 0, // Optionally, you could compute the total value based on assets.
     });
 
     res.status(201).json(newPortfolio);
@@ -55,12 +57,12 @@ exports.updatePortfolio = async (req, res) => {
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
-    // Ownership check
+    // Check if the authenticated user is the owner.
     if (portfolio.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // Update fields
+    // Update portfolio fields if provided.
     const { name, riskTolerance, assets, value } = req.body;
     if (name !== undefined) portfolio.name = name;
     if (riskTolerance !== undefined) portfolio.riskTolerance = riskTolerance;
@@ -80,7 +82,7 @@ exports.deletePortfolio = async (req, res) => {
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
-    // Ownership
+    // Check ownership
     if (portfolio.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Forbidden' });
     }
