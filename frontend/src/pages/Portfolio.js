@@ -2,6 +2,15 @@
 import React, { useEffect, useState } from 'react';
 import apiService from '../services/apiServices';
 
+// 1. Symbol list
+const SYMBOL_OPTIONS = [
+  { label: 'Apple (AAPL)', symbol: 'AAPL' },
+  { label: 'Tesla (TSLA)', symbol: 'TSLA' },
+  { label: 'Amazon (AMZN)', symbol: 'AMZN' },
+  { label: 'SPDR S&P 500 (SPY)', symbol: 'SPY' },
+  { label: 'Vanguard Total Bond (BND)', symbol: 'BND' },
+];
+
 export default function Portfolio() {
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,12 +21,12 @@ export default function Portfolio() {
   // Form state for portfolio details
   const [portfolioName, setPortfolioName] = useState('');
   const [riskTolerance, setRiskTolerance] = useState('Moderate');
-  // State for assets: each asset has { symbol, shares, price }
+  // For each asset row, we track { symbol, shares, price }
   const [assets, setAssets] = useState([]);
   const [createError, setCreateError] = useState(null);
   const [creating, setCreating] = useState(false);
 
-  // Fetch portfolios from the backend
+  // 2. Fetch portfolios from the backend
   const fetchPortfolios = async () => {
     setLoading(true);
     setError(null);
@@ -35,12 +44,12 @@ export default function Portfolio() {
     fetchPortfolios();
   }, []);
 
-  // Add a new empty asset row
+  // 3. Add a new empty asset row
   const handleAddAsset = () => {
-    setAssets([...assets, { symbol: '', shares: '', price: '' }]);
+    setAssets((prev) => [...prev, { symbol: '', shares: '', price: '' }]);
   };
 
-  // Update a specific asset field
+  // 4. Update a specific asset field
   const handleAssetChange = (index, field, value) => {
     const updatedAssets = assets.map((asset, idx) =>
       idx === index ? { ...asset, [field]: value } : asset
@@ -48,13 +57,13 @@ export default function Portfolio() {
     setAssets(updatedAssets);
   };
 
-  // Remove an asset row
+  // 5. Remove an asset row
   const handleRemoveAsset = (index) => {
     const updatedAssets = assets.filter((_, idx) => idx !== index);
     setAssets(updatedAssets);
   };
 
-  // Handle form submission for creating a portfolio
+  // 6. Handle form submission for creating a portfolio
   const handleCreatePortfolio = async (e) => {
     e.preventDefault();
     setCreateError(null);
@@ -64,7 +73,7 @@ export default function Portfolio() {
     const newPortfolio = {
       name: portfolioName,
       riskTolerance,
-      // Ensure shares and price are numbers
+      // Convert shares/price to numbers
       assets: assets.map((asset) => ({
         symbol: asset.symbol,
         shares: Number(asset.shares),
@@ -127,39 +136,44 @@ export default function Portfolio() {
               <label className="block mb-1 font-semibold">Assets</label>
               {assets.map((asset, index) => (
                 <div key={index} className="flex space-x-2 items-center mb-2">
-                  <input
-                    type="text"
-                    placeholder="Symbol"
+                  {/* Symbol selector */}
+                  <select
                     value={asset.symbol}
-                    onChange={(e) =>
-                      handleAssetChange(index, 'symbol', e.target.value)
-                    }
+                    onChange={(e) => handleAssetChange(index, 'symbol', e.target.value)}
                     className="w-1/3 border border-gray-300 rounded px-2 py-1 
                                focus:outline-none focus:ring focus:ring-shade-3"
                     required
-                  />
+                  >
+                    <option value="">-- Symbol --</option>
+                    {SYMBOL_OPTIONS.map((opt) => (
+                      <option key={opt.symbol} value={opt.symbol}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Shares */}
                   <input
                     type="number"
                     placeholder="Shares"
                     value={asset.shares}
-                    onChange={(e) =>
-                      handleAssetChange(index, 'shares', e.target.value)
-                    }
+                    onChange={(e) => handleAssetChange(index, 'shares', e.target.value)}
                     className="w-1/3 border border-gray-300 rounded px-2 py-1 
                                focus:outline-none focus:ring focus:ring-shade-3"
                     required
                   />
+
+                  {/* Price */}
                   <input
                     type="number"
                     placeholder="Price"
                     value={asset.price}
-                    onChange={(e) =>
-                      handleAssetChange(index, 'price', e.target.value)
-                    }
+                    onChange={(e) => handleAssetChange(index, 'price', e.target.value)}
                     className="w-1/3 border border-gray-300 rounded px-2 py-1 
                                focus:outline-none focus:ring focus:ring-shade-3"
                     required
                   />
+
                   <button
                     type="button"
                     onClick={() => handleRemoveAsset(index)}

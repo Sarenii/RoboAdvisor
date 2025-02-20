@@ -1,27 +1,50 @@
-import React, { useState } from 'react';
+// src/components/Navbar.jsx
+
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import apiService from '../services/apiServices';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  // Optional: notifications count (unread).
+  // If you want to display a count in the navbar.
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const handleSignOut = () => {
     signOut();
     navigate('/');
   };
 
-  // A helper function to return classes for NavLink based on whether it's active.
+  // A helper function for NavLink styling
   const linkClasses = ({ isActive }) =>
     isActive
-      ? 'px-3 py-1 rounded bg-shade-4 text-white' // Active link style
+      ? 'px-3 py-1 rounded bg-shade-4 text-white'
       : 'px-3 py-1 rounded hover:bg-shade-3 hover:text-white';
 
   const mobileLinkClasses = ({ isActive }) =>
     isActive
       ? 'block p-2 rounded bg-shade-4 text-white'
       : 'block p-2 rounded hover:bg-shade-3 hover:text-white';
+
+  // Fetch unread notifications count (optional)
+  const fetchNotifications = async () => {
+    try {
+      const res = await apiService.get('/notifications');
+      setUnreadCount(res.data.length); // e.g. total unread
+    } catch (err) {
+      // silently fail
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
 
   return (
     <nav className="bg-green-dark text-white">
@@ -42,20 +65,40 @@ export default function Navbar() {
               About
             </NavLink>
 
-            {/* Other Pages (no sign in required, as per your setup) */}
-            <NavLink to="/dashboard" className={linkClasses}>
-              Dashboard
-            </NavLink>
-           
+            {/* If user is logged in, show Dashboard, Profile, etc. */}
+            {user && (
+              <>
+                <NavLink to="/dashboard" className={linkClasses}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/profile" className={linkClasses}>
+                  Profile
+                </NavLink>
+                
+                {/* Optional Notifications link */}
+                <NavLink to="/notifications" className={linkClasses}>
+                  Notifications{unreadCount > 0 && ` (${unreadCount})`}
+                </NavLink>
 
-            {user ? (
-              <button
-                onClick={handleSignOut}
-                className="px-3 py-1 rounded bg-red-600 hover:bg-red-500"
-              >
-                Sign Out
-              </button>
-            ) : (
+                {/* Admin link, only if role == 'admin' */}
+                {user.role === 'admin' && (
+                  <NavLink to="/dashboard/admin" className={linkClasses}>
+                    Admin
+                  </NavLink>
+                )}
+
+                {/* Sign Out */}
+                <button
+                  onClick={handleSignOut}
+                  className="px-3 py-1 rounded bg-red-600 hover:bg-red-500 ml-2"
+                >
+                  Sign Out
+                </button>
+              </>
+            )}
+
+            {/* If no user, show Sign In / Sign Up */}
+            {!user && (
               <>
                 <NavLink to="/signin" className={linkClasses}>
                   Sign In
@@ -107,18 +150,54 @@ export default function Navbar() {
           >
             About
           </NavLink>
-          
-          {user ? (
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                handleSignOut();
-              }}
-              className="block w-full text-left p-2 rounded bg-red-600 hover:bg-red-500 mt-2"
-            >
-              Sign Out
-            </button>
-          ) : (
+
+          {user && (
+            <>
+              <NavLink
+                to="/dashboard"
+                className={mobileLinkClasses}
+                onClick={() => setMobileOpen(false)}
+              >
+                Dashboard
+              </NavLink>
+              <NavLink
+                to="/profile"
+                className={mobileLinkClasses}
+                onClick={() => setMobileOpen(false)}
+              >
+                Profile
+              </NavLink>
+              <NavLink
+                to="/notifications"
+                className={mobileLinkClasses}
+                onClick={() => setMobileOpen(false)}
+              >
+                Notifications{unreadCount > 0 && ` (${unreadCount})`}
+              </NavLink>
+              
+              {user.role === 'admin' && (
+                <NavLink
+                  to="/dashboard/admin"
+                  className={mobileLinkClasses}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Admin
+                </NavLink>
+              )}
+
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleSignOut();
+                }}
+                className="block w-full text-left p-2 rounded bg-red-600 hover:bg-red-500 mt-2"
+              >
+                Sign Out
+              </button>
+            </>
+          )}
+
+          {!user && (
             <>
               <NavLink
                 to="/signin"

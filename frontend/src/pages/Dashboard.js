@@ -1,15 +1,55 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import apiService from '../services/apiServices';
 
 export default function Dashboard() {
   const { user } = useAuth();
 
-  // Example stats (replace with actual data fetching)
-  const stats = [
-    { id: 1, label: 'Total Portfolio Value', value: '$10,500' },
-    { id: 2, label: 'Monthly Return', value: '+3.2%' },
-    { id: 3, label: 'Risk Level', value: 'Moderate' },
-  ];
+  // Local state for loading, error, and the fetched dashboard data
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
+
+  useEffect(() => {
+    /**
+     * Fetch the user's dashboard stats from the backend
+     */
+    const fetchDashboardData = async () => {
+      try {
+        // Make sure your backend endpoint is exactly this path:
+        // GET /api/dashboard
+        const response = await apiService.get('/dashboard');
+        setDashboardData(response.data);
+      } catch (err) {
+        setError(
+          err.response?.data?.message || 'Failed to load dashboard data.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return <div>Loading dashboard data...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-600 bg-red-50 p-2 mb-4 rounded border border-red-200">
+        {error}
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return <div>No dashboard data found.</div>;
+  }
+
+  // Destructure the data from your server response
+  const { totalValue, monthlyReturn, riskLevel, recentActivities } = dashboardData;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -20,22 +60,45 @@ export default function Dashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.id} className="bg-white rounded shadow p-6">
-            <h2 className="text-lg font-semibold mb-2">{stat.label}</h2>
-            <p className="text-2xl font-bold text-shade-2">{stat.value}</p>
-          </div>
-        ))}
+        {/* Total Portfolio Value */}
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold mb-2">Total Portfolio Value</h2>
+          <p className="text-2xl font-bold text-shade-2">
+            ${totalValue?.toFixed(2)}
+          </p>
+        </div>
+
+        {/* Monthly Return */}
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold mb-2">Monthly Return</h2>
+          <p className="text-2xl font-bold text-shade-2">
+            {monthlyReturn >= 0
+              ? `+${(monthlyReturn * 100).toFixed(2)}%`
+              : `${(monthlyReturn * 100).toFixed(2)}%`}
+          </p>
+        </div>
+
+        {/* Risk Level */}
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold mb-2">Risk Level</h2>
+          <p className="text-2xl font-bold text-shade-2">
+            {riskLevel || 'Moderate'}
+          </p>
+        </div>
       </div>
 
-      {/* Example Section: Recent Activity */}
+      {/* Recent Activity */}
       <div className="mt-8 bg-white rounded shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-        <ul className="list-disc list-inside text-gray-700 space-y-2">
-          <li>Portfolio Rebalanced on 01/30/2025.</li>
-          <li>Added $500 to Tech Growth Portfolio.</li>
-          <li>Received quarterly dividends from BlueChip Fund.</li>
-        </ul>
+        {recentActivities?.length > 0 ? (
+          <ul className="list-disc list-inside text-gray-700 space-y-2">
+            {recentActivities.map((activity, idx) => (
+              <li key={idx}>{activity}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No recent activity.</p>
+        )}
       </div>
     </div>
   );

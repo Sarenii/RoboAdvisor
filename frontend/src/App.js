@@ -18,6 +18,10 @@ import AdminPanel from './pages/AdminPanel';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import About from './pages/About';
+import MarketData from './pages/MarketData';
+import Profile from './pages/Profile';
+import Notification from './pages/Notification';
+
 
 
 function App() {
@@ -35,6 +39,8 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/about" element={<About />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/notifications" element={<Notification />} />
 
 
               {/* 
@@ -49,6 +55,7 @@ function App() {
                 <Route path="portfolio" element={<Portfolio />} />
                 {/* /dashboard/admin */}
                 <Route path="admin" element={<AdminPanel />} />
+                <Route path="market" element={<MarketData />} />
               </Route>
 
             </Routes>

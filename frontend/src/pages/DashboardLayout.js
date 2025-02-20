@@ -25,6 +25,9 @@ export default function DashboardLayout() {
           <NavLink to="admin" className={linkClasses}>
             Admin Panel
           </NavLink>
+          <NavLink to="market" className={linkClasses}>
+            Market Data
+          </NavLink>
         </nav>
       </aside>
 

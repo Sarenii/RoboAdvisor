@@ -1,6 +1,9 @@
 // src/pages/AdminPanel.jsx
+
 import React, { useEffect, useState } from 'react';
+import { Link, Routes, Route } from 'react-router-dom';
 import apiService from '../services/apiServices';
+import AdminAnalytics from './AdminAnalytics.js'; // create this page
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -29,8 +32,7 @@ export default function AdminPanel() {
   const handleDeactivate = async (userId) => {
     try {
       await apiService.put(`/admin/users/${userId}/deactivate`);
-      // re-fetch or update local state
-      fetchUsers();
+      fetchUsers(); // refresh user list
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to deactivate user.');
     }
@@ -40,24 +42,11 @@ export default function AdminPanel() {
   const handlePromote = async (userId) => {
     try {
       await apiService.put(`/admin/users/${userId}/promote`);
-      // re-fetch or update local state
       fetchUsers();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to promote user.');
     }
   };
-
-  if (loading) {
-    return <div className="bg-white rounded shadow p-6">Loading users...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="bg-white rounded shadow p-6 text-red-600">
-        Error: {error}
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white rounded shadow p-6">
@@ -66,45 +55,73 @@ export default function AdminPanel() {
         Manage user accounts, monitor system performance, and access analytics here.
       </p>
 
-      {users.length === 0 ? (
-        <p>No users found.</p>
-      ) : (
-        <div className="overflow-x-auto bg-shade-8 rounded">
-          <table className="min-w-full table-auto">
-            <thead className="bg-green-dark text-white">
-              <tr>
-                <th className="px-4 py-2 text-left text-sm font-semibold">User ID</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold">Email</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold">Role</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u._id} className="border-b hover:bg-shade-9">
-                  <td className="px-4 py-2 text-sm">{u._id}</td>
-                  <td className="px-4 py-2 text-sm">{u.email}</td>
-                  <td className="px-4 py-2 text-sm">{u.role}</td>
-                  <td className="px-4 py-2 text-sm">
-                    <button
-                      onClick={() => handleDeactivate(u._id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 mr-2"
-                    >
-                      Deactivate
-                    </button>
-                    <button
-                      onClick={() => handlePromote(u._id)}
-                      className="bg-shade-4 text-white px-3 py-1 rounded hover:bg-shade-3"
-                    >
-                      Promote
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Navigation inside Admin Panel */}
+      <nav className="flex space-x-4 mb-4">
+        <Link to="/dashboard/admin" className="underline">
+          User Management
+        </Link>
+        <Link to="/dashboard/admin/analytics" className="underline">
+          System Analytics
+        </Link>
+      </nav>
+
+      {/* If your Router is set up with nested routes, handle them here */}
+      <Routes>
+        {/* Index route -> shows user management table */}
+        <Route
+          index
+          element={
+            loading ? (
+              <div>Loading users...</div>
+            ) : error ? (
+              <div className="text-red-600">Error: {error}</div>
+            ) : (
+              <>
+                {users.length === 0 ? (
+                  <p>No users found.</p>
+                ) : (
+                  <div className="overflow-x-auto bg-shade-8 rounded">
+                    <table className="min-w-full table-auto">
+                      <thead className="bg-green-dark text-white">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm font-semibold">User ID</th>
+                          <th className="px-4 py-2 text-left text-sm font-semibold">Email</th>
+                          <th className="px-4 py-2 text-left text-sm font-semibold">Role</th>
+                          <th className="px-4 py-2 text-left text-sm font-semibold">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => (
+                          <tr key={u._id} className="border-b hover:bg-shade-9">
+                            <td className="px-4 py-2 text-sm">{u._id}</td>
+                            <td className="px-4 py-2 text-sm">{u.email}</td>
+                            <td className="px-4 py-2 text-sm">{u.role}</td>
+                            <td className="px-4 py-2 text-sm">
+                              <button
+                                onClick={() => handleDeactivate(u._id)}
+                                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 mr-2"
+                              >
+                                Deactivate
+                              </button>
+                              <button
+                                onClick={() => handlePromote(u._id)}
+                                className="bg-shade-4 text-white px-3 py-1 rounded hover:bg-shade-3"
+                              >
+                                Promote
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )
+          }
+        />
+        <Route path="analytics" element={<AdminAnalytics />} />
+      </Routes>
     </div>
   );
 }
