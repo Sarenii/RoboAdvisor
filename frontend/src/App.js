@@ -15,6 +15,7 @@ import DashboardLayout from './pages/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import Portfolio from './pages/Portfolio';
 import AdminPanel from './pages/AdminPanel';
+import AdminAnalytics from './pages/AdminAnalytics'; 
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import About from './pages/About';
@@ -41,6 +42,8 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/notifications" element={<Notification />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              
 
 
               {/* 

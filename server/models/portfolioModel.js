@@ -1,17 +1,19 @@
+// models/Portfolio.js
 const mongoose = require('mongoose');
 
 const assetSchema = new mongoose.Schema({
-  symbol: String,
-  shares: Number,
-  price: Number,
+  symbol: { type: String, required: true },
+  shares: { type: Number, required: true },
+  price: { type: Number, required: true },
 });
 
 const portfolioSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    investmentAmount: { type: Number, required: true },
     riskTolerance: { type: String, default: 'Moderate' },
-    // total value can be computed or stored, up to you
+    allocationType: { type: String, enum: ['automated', 'manual'], default: 'automated' },
     value: { type: Number, default: 0 },
     assets: [assetSchema],
   },

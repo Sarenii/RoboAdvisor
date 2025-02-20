@@ -1,10 +1,7 @@
-// controllers/notificationController.js
 const Notification = require('../models/notificationModel');
 
-// GET /api/notifications
 exports.getNotifications = async (req, res) => {
   try {
-    // fetch unread notifications for this user
     const notifications = await Notification.find({ user: req.user._id, read: false });
     res.json(notifications);
   } catch (err) {
@@ -12,7 +9,6 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
-// PUT /api/notifications/:id/read
 exports.markAsRead = async (req, res) => {
   try {
     const { id } = req.params;

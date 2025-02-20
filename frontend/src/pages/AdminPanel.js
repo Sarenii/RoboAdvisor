@@ -1,16 +1,15 @@
 // src/pages/AdminPanel.jsx
-
 import React, { useEffect, useState } from 'react';
-import { Link, Routes, Route } from 'react-router-dom';
 import apiService from '../services/apiServices';
-import AdminAnalytics from './AdminAnalytics.js'; // create this page
+import AdminAnalytics from './AdminAnalytics';
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("management");
 
-  // Fetch all users (admin only)
+  // Fetch all users for user management (admin only)
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
@@ -25,18 +24,10 @@ export default function AdminPanel() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  // Deactivate a user
-  const handleDeactivate = async (userId) => {
-    try {
-      await apiService.put(`/admin/users/${userId}/deactivate`);
-      fetchUsers(); // refresh user list
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to deactivate user.');
+    if (activeTab === "management") {
+      fetchUsers();
     }
-  };
+  }, [activeTab]);
 
   // Promote a user to admin
   const handlePromote = async (userId) => {
@@ -48,80 +39,111 @@ export default function AdminPanel() {
     }
   };
 
+  // Demote an admin to regular user
+  const handleDemote = async (userId) => {
+    try {
+      await apiService.put(`/admin/users/${userId}/demote`);
+      fetchUsers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to demote user.');
+    }
+  };
+
+  // Delete a user
+  const handleDelete = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await apiService.delete(`/admin/users/${userId}`);
+      fetchUsers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete user.');
+    }
+  };
+
   return (
     <div className="bg-white rounded shadow p-6">
       <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
       <p className="mb-6">
-        Manage user accounts, monitor system performance, and access analytics here.
+        Manage user accounts and view system analytics.
       </p>
-
-      {/* Navigation inside Admin Panel */}
-      <nav className="flex space-x-4 mb-4">
-        <Link to="/dashboard/admin" className="underline">
+      {/* Tab toggle buttons */}
+      <div className="flex space-x-4 mb-6">
+        <button
+          onClick={() => setActiveTab("management")}
+          className={`px-4 py-2 rounded font-semibold ${activeTab === "management" ? "bg-shade-2 text-white" : "bg-shade-9 text-shade-3"}`}
+        >
           User Management
-        </Link>
-        <Link to="/dashboard/admin/analytics" className="underline">
+        </button>
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={`px-4 py-2 rounded font-semibold ${activeTab === "analytics" ? "bg-shade-2 text-white" : "bg-shade-9 text-shade-3"}`}
+        >
           System Analytics
-        </Link>
-      </nav>
+        </button>
+      </div>
 
-      {/* If your Router is set up with nested routes, handle them here */}
-      <Routes>
-        {/* Index route -> shows user management table */}
-        <Route
-          index
-          element={
-            loading ? (
-              <div>Loading users...</div>
-            ) : error ? (
-              <div className="text-red-600">Error: {error}</div>
-            ) : (
-              <>
-                {users.length === 0 ? (
-                  <p>No users found.</p>
-                ) : (
-                  <div className="overflow-x-auto bg-shade-8 rounded">
-                    <table className="min-w-full table-auto">
-                      <thead className="bg-green-dark text-white">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-sm font-semibold">User ID</th>
-                          <th className="px-4 py-2 text-left text-sm font-semibold">Email</th>
-                          <th className="px-4 py-2 text-left text-sm font-semibold">Role</th>
-                          <th className="px-4 py-2 text-left text-sm font-semibold">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.map((u) => (
-                          <tr key={u._id} className="border-b hover:bg-shade-9">
-                            <td className="px-4 py-2 text-sm">{u._id}</td>
-                            <td className="px-4 py-2 text-sm">{u.email}</td>
-                            <td className="px-4 py-2 text-sm">{u.role}</td>
-                            <td className="px-4 py-2 text-sm">
+      {activeTab === "management" ? (
+        <>
+          {loading ? (
+            <div>Loading users...</div>
+          ) : error ? (
+            <div className="text-red-600">Error: {error}</div>
+          ) : (
+            <>
+              {users.length === 0 ? (
+                <p>No users found.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full table-auto">
+                    <thead className="bg-green-dark text-white">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-sm font-semibold">User ID</th>
+                        <th className="px-4 py-2 text-left text-sm font-semibold">Email</th>
+                        <th className="px-4 py-2 text-left text-sm font-semibold">Role</th>
+                        <th className="px-4 py-2 text-left text-sm font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((u) => (
+                        <tr key={u._id} className="border-b hover:bg-shade-9">
+                          <td className="px-4 py-2 text-sm">{u._id}</td>
+                          <td className="px-4 py-2 text-sm">{u.email}</td>
+                          <td className="px-4 py-2 text-sm">{u.role}</td>
+                          <td className="px-4 py-2 text-sm space-x-2">
+                            {u.role === "admin" ? (
                               <button
-                                onClick={() => handleDeactivate(u._id)}
-                                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 mr-2"
+                                onClick={() => handleDemote(u._id)}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
                               >
-                                Deactivate
+                                Demote
                               </button>
+                            ) : (
                               <button
                                 onClick={() => handlePromote(u._id)}
-                                className="bg-shade-4 text-white px-3 py-1 rounded hover:bg-shade-3"
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
                               >
                                 Promote
                               </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            )
-          }
-        />
-        <Route path="analytics" element={<AdminAnalytics />} />
-      </Routes>
+                            )}
+                            <button
+                              onClick={() => handleDelete(u._id)}
+                              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        <AdminAnalytics />
+      )}
     </div>
   );
 }

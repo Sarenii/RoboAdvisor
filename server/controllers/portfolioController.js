@@ -2,47 +2,75 @@
 
 const Portfolio = require('../models/portfolioModel');
 const Notification = require('../models/notificationModel');
+const User = require('../models/userModel');
+const { getRealTimeQuote } = require('../services/marketDataService');
 
 /**
- * Helper function: autoAllocateAssets
- * Returns a simple preset allocation based on the user's risk tolerance.
+ * Advanced allocation function:
+ * This function chooses target symbols based on the user's financial goals and risk tolerance.
+ * It then splits the provided investmentAmount evenly among these symbols, fetching real-time prices.
+ * 
+ * @param {string} userGoals - The user's financial goals (e.g., "retire", "house")
+ * @param {string} riskTolerance - User's risk tolerance: "Low", "Moderate", or "High"
+ * @param {number} investmentAmount - The total amount to invest in this portfolio
+ * @returns {Promise<Array>} - Array of assets objects: [{ symbol, shares, price }, ...]
  */
-function autoAllocateAssets(riskTolerance) {
-  const sampleAllocations = {
-    Low: [
-      { symbol: 'BND', shares: 10, price: 75 },  // Bond ETF
-      { symbol: 'SPY', shares: 5, price: 400 }, // S&P 500 ETF
-    ],
-    Moderate: [
-      { symbol: 'SPY', shares: 5, price: 400 },
-      { symbol: 'QQQ', shares: 5, price: 300 }, // Nasdaq ETF
-      { symbol: 'TLT', shares: 3, price: 100 }, // 20+ Yr Treasury Bond
-    ],
-    High: [
-      { symbol: 'QQQ', shares: 10, price: 300 },
-      { symbol: 'ARKK', shares: 5, price: 40 },  // A high-growth ETF
-    ],
-  };
+async function advancedAllocateAssets(userGoals, riskTolerance, investmentAmount) {
+  let targetSymbols = [];
+  const goalsLower = userGoals.toLowerCase();
 
-  // Default to 'Moderate' if no matching key is found
-  return sampleAllocations[riskTolerance] || sampleAllocations['Moderate'];
+  if (goalsLower.includes('retire')) {
+    // More conservative allocation if goals include "retire"
+    if (riskTolerance === 'High') {
+      targetSymbols = ['QQQ', 'BND', 'SPY'];
+    } else {
+      targetSymbols = ['BND', 'SPY'];
+    }
+  } else if (goalsLower.includes('house')) {
+    // Moderate allocation if goals include "house"
+    targetSymbols = ['SPY', 'BND'];
+  } else {
+    // Fallback purely based on risk tolerance
+    if (riskTolerance === 'Low') {
+      targetSymbols = ['BND', 'SPY'];
+    } else if (riskTolerance === 'High') {
+      targetSymbols = ['QQQ', 'ARKK'];
+    } else {
+      targetSymbols = ['SPY', 'QQQ'];
+    }
+  }
+
+  const totalCapital = Number(investmentAmount);
+  if (!totalCapital || totalCapital <= 0) {
+    throw new Error("Investment amount must be greater than zero for automated allocation.");
+  }
+  
+  const finalAssets = [];
+  // Evenly allocate the capital among target symbols
+  const eachAllocation = totalCapital / targetSymbols.length;
+
+  for (const symbol of targetSymbols) {
+    const quote = await getRealTimeQuote(symbol);
+    const price = quote.price || 100; // Fallback price
+    const shares = Math.floor(eachAllocation / price);
+    finalAssets.push({
+      symbol,
+      shares,
+      price,
+    });
+  }
+  return finalAssets;
 }
 
 /**
- * Recalculate the total value of a portfolio by summing all asset prices * shares.
+ * Calculate the total value of a portfolio by summing asset (shares * price).
+ * @param {Array} assets - Array of asset objects.
+ * @returns {number} - Total portfolio value.
  */
 function calculatePortfolioValue(assets) {
-  let total = 0;
-  assets.forEach((asset) => {
-    total += asset.shares * asset.price;
-  });
-  return total;
+  return assets.reduce((total, asset) => total + asset.shares * asset.price, 0);
 }
 
-/**
- * GET /api/portfolios
- * Fetch all portfolios owned by the current authenticated user.
- */
 exports.getAllPortfolios = async (req, res) => {
   try {
     const portfolios = await Portfolio.find({ user: req.user._id });
@@ -52,17 +80,12 @@ exports.getAllPortfolios = async (req, res) => {
   }
 };
 
-/**
- * GET /api/portfolios/:id
- * Fetch a single portfolio by its ID.
- */
 exports.getPortfolioById = async (req, res) => {
   try {
     const portfolio = await Portfolio.findById(req.params.id);
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
-    // Ensure only the owner can view
     if (portfolio.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Forbidden' });
     }
@@ -73,81 +96,104 @@ exports.getPortfolioById = async (req, res) => {
 };
 
 /**
- * POST /api/portfolios
  * Create a new portfolio.
  * 
- * Request body can contain:
- *   name: Name of the portfolio (required)
- *   riskTolerance: 'Low' | 'Moderate' | 'High'
- *   assets: (Manual) array of { symbol, shares, price }
- *   allocationType: 'manual' or 'automated'
+ * For automated allocation, this function uses the user's financial goals and risk tolerance,
+ * along with the provided investmentAmount, to fetch real-time prices and allocate assets accordingly.
+ * If allocationType is 'manual', it expects a user-provided assets array (and fetches real prices for each).
+ * Also, the user's profile must have financial goals set.
  */
 exports.createPortfolio = async (req, res) => {
   try {
-    const { name, riskTolerance, assets, allocationType } = req.body;
+    const { name, investmentAmount, riskTolerance, assets, allocationType } = req.body;
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
 
-    let finalAssets = [];
-    if (allocationType === 'automated') {
-      // Automatic allocation based on riskTolerance
-      finalAssets = autoAllocateAssets(riskTolerance || 'Moderate');
-    } else {
-      // Manual allocation
-      finalAssets = Array.isArray(assets) ? assets : [];
+    // 1. Ensure the user has set financial goals in their profile
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (!user.goals || user.goals.trim() === '') {
+      return res.status(400).json({ message: 'Please set financial goals in your profile before creating a portfolio.' });
     }
 
-    // Calculate total value
+    let finalAssets = [];
+    if (allocationType === 'automated') {
+      // For automated allocation, ensure investmentAmount is valid and use advanced allocation
+      if (!investmentAmount || Number(investmentAmount) <= 0) {
+        return res.status(400).json({ message: 'Please provide a valid investment amount for automated allocation.' });
+      }
+      finalAssets = await advancedAllocateAssets(user.goals, riskTolerance || user.riskTolerance, investmentAmount);
+    } else {
+      // Manual allocation: require assets array and fetch real-time prices for each asset
+      if (!Array.isArray(assets) || assets.length === 0) {
+        return res.status(400).json({ message: 'Please provide assets for manual allocation.' });
+      }
+      finalAssets = [];
+      for (let i = 0; i < assets.length; i++) {
+        const symbol = assets[i].symbol;
+        const quote = await getRealTimeQuote(symbol);
+        finalAssets.push({
+          symbol,
+          shares: Number(assets[i].shares),
+          price: quote.price,
+        });
+      }
+    }
+
+    // 2. Calculate the total value of the new portfolio
     const totalValue = calculatePortfolioValue(finalAssets);
 
-    // Create the portfolio
+    // 3. Create the portfolio in the database
     const newPortfolio = await Portfolio.create({
       name,
       user: req.user._id,
-      riskTolerance: riskTolerance || 'Moderate',
+      riskTolerance: riskTolerance || user.riskTolerance,
       assets: finalAssets,
       value: totalValue,
+      investmentAmount: Number(investmentAmount) || 0,
+      allocationType,
     });
 
-    // Create a notification to inform user
+    // 4. Create a notification for the user
     await Notification.create({
       user: req.user._id,
-      message: `Portfolio "${name}" created successfully.`,
+      message: `Portfolio "${name}" created successfully with value $${totalValue.toFixed(2)}.`,
     });
 
     res.status(201).json(newPortfolio);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
 
-/**
- * PUT /api/portfolios/:id
- * Update an existing portfolio (name, riskTolerance, assets, etc.).
- */
 exports.updatePortfolio = async (req, res) => {
   try {
     const portfolio = await Portfolio.findById(req.params.id);
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
-    // Ensure only the owner can update
     if (portfolio.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
     const { name, riskTolerance, assets, value } = req.body;
-
     if (name !== undefined) portfolio.name = name;
     if (riskTolerance !== undefined) portfolio.riskTolerance = riskTolerance;
+
     if (assets !== undefined) {
+      for (let i = 0; i < assets.length; i++) {
+        const quote = await getRealTimeQuote(assets[i].symbol);
+        assets[i].price = quote.price;
+      }
       portfolio.assets = assets;
-      // Recalculate total value if assets changed
       portfolio.value = calculatePortfolioValue(assets);
     }
+
     if (value !== undefined) {
-      // If you explicitly want to allow manual override
       portfolio.value = value;
     }
 
@@ -158,17 +204,12 @@ exports.updatePortfolio = async (req, res) => {
   }
 };
 
-/**
- * DELETE /api/portfolios/:id
- * Delete a portfolio by its ID.
- */
 exports.deletePortfolio = async (req, res) => {
   try {
     const portfolio = await Portfolio.findById(req.params.id);
     if (!portfolio) {
       return res.status(404).json({ message: 'Portfolio not found' });
     }
-    // Ensure only the owner can delete
     if (portfolio.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Forbidden' });
     }

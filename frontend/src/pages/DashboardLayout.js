@@ -22,9 +22,7 @@ export default function DashboardLayout() {
           <NavLink to="portfolio" className={linkClasses}>
             Portfolio
           </NavLink>
-          <NavLink to="admin" className={linkClasses}>
-            Admin Panel
-          </NavLink>
+        
           <NavLink to="market" className={linkClasses}>
             Market Data
           </NavLink>

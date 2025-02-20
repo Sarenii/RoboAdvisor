@@ -35,7 +35,7 @@ export default function Profile() {
     setSuccessMessage(null);
 
     try {
-      const res = await apiService.put('/profile', {
+      await apiService.put('/profile', {
         name,
         phone,
         goals,
@@ -47,7 +47,9 @@ export default function Profile() {
     }
   };
 
-  if (loading) return <div>Loading profile...</div>;
+  if (loading) {
+    return <div>Loading profile...</div>;
+  }
 
   return (
     <div className="bg-white p-6 rounded shadow max-w-2xl mx-auto">
@@ -84,7 +86,11 @@ export default function Profile() {
             rows={3}
             value={goals}
             onChange={(e) => setGoals(e.target.value)}
+            placeholder="E.g. Retire by 2030, Buy a house in 5 years, etc."
           />
+          <p className="text-sm text-gray-600 mt-1">
+            You must set financial goals before you can create portfolios.
+          </p>
         </div>
 
         <div>

@@ -1,4 +1,3 @@
-// routes/notificationRoutes.js
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
@@ -6,7 +5,7 @@ const { getNotifications, markAsRead } = require('../controllers/notificationCon
 
 router.use(protect);
 
-router.get('/', getNotifications);           // GET /api/notifications
-router.put('/:id/read', markAsRead);         // PUT /api/notifications/:id/read
+router.get('/', getNotifications);
+router.put('/:id/read', markAsRead);
 
 module.exports = router;
